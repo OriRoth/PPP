@@ -1,1 +1,2 @@
 include 'il.org.ppp.core'
+include 'il.org.ppp.core.test'
