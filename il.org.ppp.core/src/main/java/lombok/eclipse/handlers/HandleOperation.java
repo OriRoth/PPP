@@ -1,8 +1,10 @@
 package lombok.eclipse.handlers;
 
-import static lombok.eclipse.handlers.EclipseHandlerUtil.*;
-import static org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants.*;
-import static lombok.eclipse.Eclipse.*;
+import static lombok.eclipse.Eclipse.ECLIPSE_DO_NOT_TOUCH_FLAG;
+import static lombok.eclipse.handlers.EclipseHandlerUtil.copyType;
+import static lombok.eclipse.handlers.EclipseHandlerUtil.injectMethod;
+import static org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants.AccPublic;
+import static org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants.AccStatic;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.List;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.internal.compiler.CompilationResult;
 import org.eclipse.jdt.internal.compiler.ast.ASTNode;
+import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Annotation;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
@@ -22,12 +25,13 @@ import org.eclipse.jdt.internal.compiler.ast.SingleTypeReference;
 import org.eclipse.jdt.internal.compiler.ast.Statement;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
+import org.eclipse.jdt.internal.compiler.impl.Constant;
 import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 
 import lombok.Operation;
+import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.LombokImmutableList;
-import lombok.core.AST.Kind;
 import lombok.eclipse.EclipseAnnotationHandler;
 import lombok.eclipse.EclipseNode;
 import ppp.util.AnnotationReflection;
@@ -70,8 +74,6 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 	private MethodDeclaration createApply(TypeDeclaration operation, List<EclipseNode> methods, ASTNode source,
 			String applyName) {
 		MethodDeclaration $ = new MethodDeclaration(operation.compilationResult);
-		$.sourceStart = source.sourceStart;
-		$.sourceEnd = source.sourceEnd;
 		$.modifiers = AccPublic | AccStatic;
 		$.returnType = createType(operation, getPosNom(source.sourceStart, source.sourceEnd));
 		$.annotations = null;
@@ -115,7 +117,7 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 		$.allocation = parent;
 		$.methods = null;
 		$.fields = null;
-		$.methods = new MethodDeclaration[arguments.length];
+		$.methods = new AbstractMethodDeclaration[arguments.length];
 		for (int i = 0; i < $.methods.length; ++i) {
 			MethodDeclaration m;
 			$.methods[i] = m = new MethodDeclaration($.compilationResult);
@@ -162,7 +164,6 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			CompilationResult cr, String applyName, String valueName) {
 		int pS = source.sourceStart, pE = source.sourceEnd;
 		MessageSend $1 = new MessageSend();
-		$1.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		$1.sourceStart = pS;
 		$1.sourceEnd = $1.statementEnd = pE;
 		$1.arguments = new Expression[arguments.length];
@@ -170,13 +171,14 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			$1.arguments[i] = new SingleNameReference(arguments[i].name, getPosNom(pS, pE));
 		$1.selector = applyName.toCharArray();
 		$1.receiver = createType(operation, getPosNom(pS, pE));
+		$1.constant = Constant.NotAConstant;
 		MessageSend $ = new MessageSend();
-		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		$.sourceStart = pS;
 		$.sourceEnd = $.statementEnd = pE;
 		$.arguments = null;
 		$.selector = valueName.toCharArray();
 		$.receiver = $1;
+		$.constant = Constant.NotAConstant;
 		return new Statement[] { new ReturnStatement($, pS, pE) };
 	}
 
