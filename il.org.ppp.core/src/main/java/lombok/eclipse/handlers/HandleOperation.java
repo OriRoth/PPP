@@ -57,57 +57,72 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 		EclipseNode enclosure = operation.up();
 		TypeDeclaration od = (TypeDeclaration) operation.get(), ed = (TypeDeclaration) enclosure.get();
 		MethodDeclaration vd = (MethodDeclaration) value.get();
-		MethodDeclaration baseApply = createApply(od, defualt, source, applyName)/*,
-				baseOperate = createOperate(ed, defualt, source, od, vd, applyName, valueName)*/;
-		injectMethod(operation, baseApply);
-//		injectMethod(enclosure, baseOperate);
+		MethodDeclaration baseOperate = createOperate(ed, defualt, source, od, vd, applyName, valueName);
+		injectMethod(enclosure, baseOperate);
 		while (!concrete.isEmpty()) {
 			defualt.add(concrete.remove(0));
-			MethodDeclaration apply = createApply(od, defualt, source, applyName)/*,
-					operate = createOperate(ed, defualt, source, od, vd, applyName, valueName)*/;
-			injectMethod(operation, apply);
-//			injectMethod(enclosure, operate);
+			MethodDeclaration operate = createOperate(ed, defualt, source, od, vd, applyName, valueName);
+			injectMethod(enclosure, operate);
 		}
 	}
 
-	private MethodDeclaration createApply(TypeDeclaration operation, List<EclipseNode> methods, ASTNode source,
-			String applyName) {
-		MethodDeclaration $ = new MethodDeclaration(operation.compilationResult);
+	private MethodDeclaration createOperate(TypeDeclaration enclosure, List<EclipseNode> methods, ASTNode source,
+			TypeDeclaration operation, MethodDeclaration value, String applyName, String valueName) {
+		MethodDeclaration $ = new MethodDeclaration(enclosure.compilationResult);
+		$.sourceStart = source.sourceStart;
+		$.sourceEnd = source.sourceEnd;
 		$.modifiers = AccPublic | AccStatic;
-		$.returnType = createType(operation, getPosNom(source.sourceStart, source.sourceEnd));
+		$.returnType = copyType(value.returnType, source);
 		$.annotations = null;
 		$.arguments = getArguments(methods, source);
-		$.selector = applyName.toCharArray();
+		$.selector = operation.name;
 		$.binding = null;
 		$.thrownExceptions = null;
 		$.typeParameters = null;
 		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		$.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
 		$.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
-		$.statements = createApplyBody(operation, $.arguments, source, $.compilationResult);
+		$.statements = createOperateBody(operation, $.arguments, source, $.compilationResult, applyName, valueName);
 		return $;
 	}
 
-	private Statement[] createApplyBody(TypeDeclaration operation, Argument[] arguments, ASTNode source,
-			CompilationResult cr) {
+	private Argument[] getArguments(List<EclipseNode> methods, ASTNode source) {
+		Argument[] $ = new Argument[methods.size()];
 		int pS = source.sourceStart, pE = source.sourceEnd;
-		QualifiedAllocationExpression $ = new QualifiedAllocationExpression();
+		for (int i = 0; i < $.length; ++i) {
+			MethodDeclaration m = (MethodDeclaration) methods.get(i).get();
+			Argument a = $[i] = new Argument(m.selector, getPosNom(pS, pE), copyType(m.returnType, source),
+					Modifier.FINAL);
+			a.sourceStart = pS;
+			a.sourceEnd = pE;
+		}
+		return $;
+	}
+
+	private Statement[] createOperateBody(TypeDeclaration operation, Argument[] arguments, ASTNode source,
+			CompilationResult cr, String applyName, String valueName) {
+		int pS = source.sourceStart, pE = source.sourceEnd;
+		long p = getPosNom(pS, pE);
+		QualifiedAllocationExpression $1 = new QualifiedAllocationExpression();
 		// TODO Roth: extra flag needed?
-		$.bits |=
-//				ECLIPSE_DO_NOT_TOUCH_FLAG |
-				Expression.InsideExpressionStatement;
-		$.sourceStart = pS;
-		$.sourceEnd = $.statementEnd = pE;
-		$.type = copyType(createType(operation, getPosNom(pS, pE)), source);
-		$.enclosingInstance = null;
-		$.anonymousType = createApplyMethods(arguments, source, $, cr, operation);
+		$1.bits |= Expression.InsideExpressionStatement;
+		$1.sourceStart = pS;
+		$1.sourceEnd = $1.statementEnd = pE;
+		$1.type = copyType(createType(operation, p), source);
+		$1.enclosingInstance = null;
+		$1.anonymousType = createOperateMethods(arguments, source, $1, cr, operation);
+		MessageSend $ = new MessageSend();
+		$.arguments = null;
+		$.nameSourcePosition = p;
+		$.receiver = $1;
+		$.selector = valueName.toCharArray();
 		return new Statement[] { new ReturnStatement($, pS, pE) };
 	}
 
-	private TypeDeclaration createApplyMethods(Argument[] arguments, ASTNode source,
+	private TypeDeclaration createOperateMethods(Argument[] arguments, ASTNode source,
 			QualifiedAllocationExpression parent, CompilationResult cr, TypeDeclaration enclosure) {
 		TypeDeclaration $ = new TypeDeclaration(cr);
-//		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+		// $.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		int pS = source.sourceStart, pE = source.sourceEnd;
 		$.sourceStart = $.declarationSourceStart = $.modifiersSourceStart = $.bodyStart = pS;
 		$.sourceEnd = $.declarationSourceEnd = $.bodyEnd = pE;
@@ -132,68 +147,11 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			m.binding = null;
 			m.thrownExceptions = null;
 			m.typeParameters = null;
-//			m.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+			// m.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 			m.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
 			m.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
 			m.statements = new Statement[] {
 					new ReturnStatement(new SingleNameReference(arguments[i].name, getPosNom(pS, pE)), pS, pE) };
-		}
-		return $;
-	}
-
-	private MethodDeclaration createOperate(TypeDeclaration enclosure, List<EclipseNode> methods, ASTNode source,
-			TypeDeclaration operation, MethodDeclaration value, String applyName, String valueName) {
-		MethodDeclaration $ = new MethodDeclaration(enclosure.compilationResult);
-		$.sourceStart = source.sourceStart;
-		$.sourceEnd = source.sourceEnd;
-		$.modifiers = AccPublic | AccStatic;
-		$.returnType = copyType(value.returnType, source);
-		$.annotations = null;
-		$.arguments = getArguments(methods, source);
-		$.selector = operation.name;
-		$.binding = null;
-		$.thrownExceptions = null;
-		$.typeParameters = null;
-//		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
-		$.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
-		$.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
-		$.statements = createOperateBody(operation, $.arguments, source, $.compilationResult, applyName, valueName);
-		return $;
-	}
-
-	private Statement[] createOperateBody(TypeDeclaration operation, Argument[] arguments, ASTNode source,
-			CompilationResult cr, String applyName, String valueName) {
-		int pS = source.sourceStart, pE = source.sourceEnd;
-		MessageSend $1 = new MessageSend();
-//		$1.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
-		$1.sourceStart = pS;
-		$1.sourceEnd = $1.statementEnd = pE;
-		$1.arguments = new Expression[arguments.length];
-		for (int i = 0; i < $1.arguments.length; ++i)
-			$1.arguments[i] = new SingleNameReference(arguments[i].name, getPosNom(pS, pE));
-		$1.selector = applyName.toCharArray();
-		$1.receiver = createType(operation, getPosNom(pS, pE));
-		$1.nameSourcePosition = getPosNom(pS, pE);
-		MessageSend $ = new MessageSend();
-//		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
-		$.sourceStart = pS;
-		$.sourceEnd = $.statementEnd = pE;
-		$.arguments = null;
-		$.selector = valueName.toCharArray();
-		$.receiver = $1;
-		$.nameSourcePosition = getPosNom(pS, pE);
-		return new Statement[] { new ReturnStatement($, pS, pE) };
-	}
-
-	private Argument[] getArguments(List<EclipseNode> methods, ASTNode source) {
-		Argument[] $ = new Argument[methods.size()];
-		int pS = source.sourceStart, pE = source.sourceEnd;
-		for (int i = 0; i < $.length; ++i) {
-			MethodDeclaration m = (MethodDeclaration) methods.get(i).get();
-			Argument a = $[i] = new Argument(m.selector, getPosNom(pS, pE), copyType(m.returnType, source),
-					Modifier.FINAL);
-			a.sourceStart = pS;
-			a.sourceEnd = pE;
 		}
 		return $;
 	}
