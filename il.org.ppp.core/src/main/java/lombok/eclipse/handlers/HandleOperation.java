@@ -13,6 +13,7 @@ import org.eclipse.jdt.internal.compiler.ast.ASTNode;
 import org.eclipse.jdt.internal.compiler.ast.Annotation;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
+import org.eclipse.jdt.internal.compiler.ast.MessageSend;
 import org.eclipse.jdt.internal.compiler.ast.MethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.QualifiedAllocationExpression;
 import org.eclipse.jdt.internal.compiler.ast.ReturnStatement;
@@ -50,15 +51,24 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 				else
 					defualt.add(n);
 		ASTNode source = annotationNode.get();
-		TypeDeclaration od = (TypeDeclaration) operation.get();
-		MethodDeclaration baseApply = createApply(od, concrete, source, applyName);
+		EclipseNode enclosure = operation.up();
+		TypeDeclaration od = (TypeDeclaration) operation.get(), ed = (TypeDeclaration) enclosure.get();
+		MethodDeclaration vd = (MethodDeclaration) value.get();
+		MethodDeclaration baseApply = createApply(od, defualt, source, applyName),
+				baseOperate = createOperate(ed, defualt, source, od, vd, applyName, valueName);
 		injectMethod(operation, baseApply);
-		annotationNode.addWarning("hmm...");
+		injectMethod(enclosure, baseOperate);
+		while (!concrete.isEmpty()) {
+			defualt.add(concrete.remove(0));
+			MethodDeclaration apply = createApply(od, defualt, source, applyName),
+					operate = createOperate(ed, defualt, source, od, vd, applyName, valueName);
+			injectMethod(operation, apply);
+			injectMethod(enclosure, operate);
+		}
 	}
 
 	private MethodDeclaration createApply(TypeDeclaration operation, List<EclipseNode> methods, ASTNode source,
 			String applyName) {
-		// TODO Roth: utility for empty method etc.
 		MethodDeclaration $ = new MethodDeclaration(operation.compilationResult);
 		$.sourceStart = source.sourceStart;
 		$.sourceEnd = source.sourceEnd;
@@ -126,6 +136,48 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 					new ReturnStatement(new SingleNameReference(arguments[i].name, getPosNom(pS, pE)), pS, pE) };
 		}
 		return $;
+	}
+
+	private MethodDeclaration createOperate(TypeDeclaration enclosure, List<EclipseNode> methods, ASTNode source,
+			TypeDeclaration operation, MethodDeclaration value, String applyName, String valueName) {
+		MethodDeclaration $ = new MethodDeclaration(enclosure.compilationResult);
+		$.sourceStart = source.sourceStart;
+		$.sourceEnd = source.sourceEnd;
+		$.modifiers = AccPublic | AccStatic;
+		$.returnType = copyType(value.returnType, source);
+		$.annotations = null;
+		$.arguments = getArguments(methods, source);
+		$.selector = operation.name;
+		$.binding = null;
+		$.thrownExceptions = null;
+		$.typeParameters = null;
+		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+		$.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
+		$.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
+		$.statements = createOperateBody(operation, $.arguments, source, $.compilationResult, applyName, valueName);
+		return $;
+	}
+
+	private Statement[] createOperateBody(TypeDeclaration operation, Argument[] arguments, ASTNode source,
+			CompilationResult cr, String applyName, String valueName) {
+		int pS = source.sourceStart, pE = source.sourceEnd;
+		MessageSend $1 = new MessageSend();
+		$1.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+		$1.sourceStart = pS;
+		$1.sourceEnd = $1.statementEnd = pE;
+		$1.arguments = new Expression[arguments.length];
+		for (int i = 0; i < $1.arguments.length; ++i)
+			$1.arguments[i] = new SingleNameReference(arguments[i].name, getPosNom(pS, pE));
+		$1.selector = applyName.toCharArray();
+		$1.receiver = createType(operation, getPosNom(pS, pE));
+		MessageSend $ = new MessageSend();
+		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+		$.sourceStart = pS;
+		$.sourceEnd = $.statementEnd = pE;
+		$.arguments = null;
+		$.selector = valueName.toCharArray();
+		$.receiver = $1;
+		return new Statement[] { new ReturnStatement($, pS, pE) };
 	}
 
 	private Argument[] getArguments(List<EclipseNode> methods, ASTNode source) {

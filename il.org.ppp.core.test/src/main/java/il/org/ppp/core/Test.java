@@ -19,7 +19,8 @@ public class Test {
 
 	public static void main(String[] args) {
 		System.out.println(root.apply(4.0).value());
-		// System.out.println("square root of 5 = " + root(5));
-		// System.out.println("cube root of 5 = " + root(5, 3));
+		System.out.println(root.apply(4.0, 3.0).value());
+		System.out.println("square root of 5 = " + root(5));
+		System.out.println("cube root of 5 = " + root(5, 3));
 	}
 }
