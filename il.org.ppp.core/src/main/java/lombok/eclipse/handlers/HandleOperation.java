@@ -25,7 +25,6 @@ import org.eclipse.jdt.internal.compiler.ast.SingleTypeReference;
 import org.eclipse.jdt.internal.compiler.ast.Statement;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
-import org.eclipse.jdt.internal.compiler.impl.Constant;
 import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 
 import lombok.Operation;
@@ -58,16 +57,16 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 		EclipseNode enclosure = operation.up();
 		TypeDeclaration od = (TypeDeclaration) operation.get(), ed = (TypeDeclaration) enclosure.get();
 		MethodDeclaration vd = (MethodDeclaration) value.get();
-		MethodDeclaration baseApply = createApply(od, defualt, source, applyName),
-				baseOperate = createOperate(ed, defualt, source, od, vd, applyName, valueName);
+		MethodDeclaration baseApply = createApply(od, defualt, source, applyName)/*,
+				baseOperate = createOperate(ed, defualt, source, od, vd, applyName, valueName)*/;
 		injectMethod(operation, baseApply);
-		injectMethod(enclosure, baseOperate);
+//		injectMethod(enclosure, baseOperate);
 		while (!concrete.isEmpty()) {
 			defualt.add(concrete.remove(0));
-			MethodDeclaration apply = createApply(od, defualt, source, applyName),
-					operate = createOperate(ed, defualt, source, od, vd, applyName, valueName);
+			MethodDeclaration apply = createApply(od, defualt, source, applyName)/*,
+					operate = createOperate(ed, defualt, source, od, vd, applyName, valueName)*/;
 			injectMethod(operation, apply);
-			injectMethod(enclosure, operate);
+//			injectMethod(enclosure, operate);
 		}
 	}
 
@@ -93,8 +92,10 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			CompilationResult cr) {
 		int pS = source.sourceStart, pE = source.sourceEnd;
 		QualifiedAllocationExpression $ = new QualifiedAllocationExpression();
-		// Extra flag needed?
-		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG | Expression.InsideExpressionStatement;
+		// TODO Roth: extra flag needed?
+		$.bits |=
+//				ECLIPSE_DO_NOT_TOUCH_FLAG |
+				Expression.InsideExpressionStatement;
 		$.sourceStart = pS;
 		$.sourceEnd = $.statementEnd = pE;
 		$.type = copyType(createType(operation, getPosNom(pS, pE)), source);
@@ -106,7 +107,7 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 	private TypeDeclaration createApplyMethods(Argument[] arguments, ASTNode source,
 			QualifiedAllocationExpression parent, CompilationResult cr, TypeDeclaration enclosure) {
 		TypeDeclaration $ = new TypeDeclaration(cr);
-		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+//		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		int pS = source.sourceStart, pE = source.sourceEnd;
 		$.sourceStart = $.declarationSourceStart = $.modifiersSourceStart = $.bodyStart = pS;
 		$.sourceEnd = $.declarationSourceEnd = $.bodyEnd = pE;
@@ -131,7 +132,7 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			m.binding = null;
 			m.thrownExceptions = null;
 			m.typeParameters = null;
-			m.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+//			m.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 			m.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
 			m.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
 			m.statements = new Statement[] {
@@ -153,7 +154,7 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 		$.binding = null;
 		$.thrownExceptions = null;
 		$.typeParameters = null;
-		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
+//		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		$.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
 		$.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
 		$.statements = createOperateBody(operation, $.arguments, source, $.compilationResult, applyName, valueName);
@@ -164,6 +165,7 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			CompilationResult cr, String applyName, String valueName) {
 		int pS = source.sourceStart, pE = source.sourceEnd;
 		MessageSend $1 = new MessageSend();
+//		$1.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		$1.sourceStart = pS;
 		$1.sourceEnd = $1.statementEnd = pE;
 		$1.arguments = new Expression[arguments.length];
@@ -171,14 +173,15 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			$1.arguments[i] = new SingleNameReference(arguments[i].name, getPosNom(pS, pE));
 		$1.selector = applyName.toCharArray();
 		$1.receiver = createType(operation, getPosNom(pS, pE));
-		$1.constant = Constant.NotAConstant;
+		$1.nameSourcePosition = getPosNom(pS, pE);
 		MessageSend $ = new MessageSend();
+//		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		$.sourceStart = pS;
 		$.sourceEnd = $.statementEnd = pE;
 		$.arguments = null;
 		$.selector = valueName.toCharArray();
 		$.receiver = $1;
-		$.constant = Constant.NotAConstant;
+		$.nameSourcePosition = getPosNom(pS, pE);
 		return new Statement[] { new ReturnStatement($, pS, pE) };
 	}
 
