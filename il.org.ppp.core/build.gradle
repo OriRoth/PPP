@@ -1,0 +1,29 @@
+apply plugin: 'java'
+
+repositories {
+  mavenCentral()
+  flatDir {
+    dirs 'lib'
+  }
+}
+
+/*
+def urlFile = { name, url ->
+  File file = new File("$buildDir/download/${name}.jar")
+  file.parentFile.mkdirs()
+  if (!file.exists()) {
+    new URL(url).withInputStream { downloadStream ->
+      file.withOutputStream { fileOut ->
+        fileOut << downloadStream
+      }
+    }
+  }
+  files(file.absolutePath)
+}
+*/
+
+dependencies {
+  // compile files("${System.getProperty('java.home')}/../jdk1.8.0_77/lib/tools.jar")
+  // compile group: 'org.projectlombok', name: 'lombok', version: '0.11.0'
+  compile name: 'lombok-clean'
+}

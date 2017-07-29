@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Core
+Bundle-SymbolicName: il.org.ppp.core
+Bundle-Version: 1.0.0.qualifier
+Export-Package: lombok,
+ lombok.eclipse.handlers,
+ ppp.util
+Require-Bundle: org.eclipse.jdt.core
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
