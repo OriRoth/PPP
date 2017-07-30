@@ -15,7 +15,6 @@ import org.eclipse.jdt.internal.compiler.ast.ASTNode;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Annotation;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
-import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.MessageSend;
 import org.eclipse.jdt.internal.compiler.ast.MethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.QualifiedAllocationExpression;
@@ -73,12 +72,8 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 		$.sourceEnd = source.sourceEnd;
 		$.modifiers = AccPublic | AccStatic;
 		$.returnType = copyType(value.returnType, source);
-		$.annotations = null;
 		$.arguments = getArguments(methods, source);
 		$.selector = operation.name;
-		$.binding = null;
-		$.thrownExceptions = null;
-		$.typeParameters = null;
 		$.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		$.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
 		$.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
@@ -104,15 +99,11 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 		int pS = source.sourceStart, pE = source.sourceEnd;
 		long p = getPosNom(pS, pE);
 		QualifiedAllocationExpression $1 = new QualifiedAllocationExpression();
-		// TODO Roth: extra flag needed?
-		$1.bits |= Expression.InsideExpressionStatement;
 		$1.sourceStart = pS;
 		$1.sourceEnd = $1.statementEnd = pE;
 		$1.type = copyType(createType(operation, p), source);
-		$1.enclosingInstance = null;
 		$1.anonymousType = createOperateMethods(arguments, source, $1, cr, operation);
 		MessageSend $ = new MessageSend();
-		$.arguments = null;
 		$.nameSourcePosition = p;
 		$.receiver = $1;
 		$.selector = valueName.toCharArray();
@@ -122,17 +113,11 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 	private TypeDeclaration createOperateMethods(Argument[] arguments, ASTNode source,
 			QualifiedAllocationExpression parent, CompilationResult cr, TypeDeclaration enclosure) {
 		TypeDeclaration $ = new TypeDeclaration(cr);
-		// $.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 		int pS = source.sourceStart, pE = source.sourceEnd;
 		$.sourceStart = $.declarationSourceStart = $.modifiersSourceStart = $.bodyStart = pS;
 		$.sourceEnd = $.declarationSourceEnd = $.bodyEnd = pE;
 		$.name = anonymousName(enclosure);
-		// TODO Roth: Is it needed?
-		$.enclosingType = enclosure;
-		// TODO Roth: Is it needed?
 		$.allocation = parent;
-		$.methods = null;
-		$.fields = null;
 		$.methods = new AbstractMethodDeclaration[arguments.length];
 		for (int i = 0; i < $.methods.length; ++i) {
 			MethodDeclaration m;
@@ -141,13 +126,7 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 			m.sourceEnd = pE;
 			m.modifiers = AccPublic;
 			m.returnType = copyType(arguments[i].type, source);
-			m.annotations = null;
-			m.arguments = null;
 			m.selector = arguments[i].name;
-			m.binding = null;
-			m.thrownExceptions = null;
-			m.typeParameters = null;
-			// m.bits |= ECLIPSE_DO_NOT_TOUCH_FLAG;
 			m.bodyStart = $.declarationSourceStart = $.sourceStart = source.sourceStart;
 			m.bodyEnd = $.declarationSourceEnd = $.sourceEnd = source.sourceEnd;
 			m.statements = new Statement[] {
@@ -157,9 +136,7 @@ public class HandleOperation extends EclipseAnnotationHandler<Operation> {
 	}
 
 	// TODO Roth: move to utility
-	// TODO Roth: fix
 	private TypeReference createType(TypeDeclaration operation, long pos) {
-		// Maybe pos=0 is wrong?
 		return new SingleTypeReference(operation.name, pos);
 	}
 
